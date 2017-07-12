@@ -43,7 +43,7 @@
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
-#if HAVE_GETOPT_H // freebsd for example doesn't have getopt.h but includes getopt() inside unistd.h
+/time#if HAVE_GETOPT_H // freebsd for example doesn't have getopt.h but includes getopt() inside unistd.h
 #include <getopt.h>
 #endif
 #if HAVE_SYS_TYPES_H
@@ -507,8 +507,8 @@ private:
     const static char DEFAULT_USER_CHAR = '\xA0';
 
     // version 2 field types
-    enum Type { NAME=0, UUID=0x1, GROUP = 0x2, TITLE = 0x3, USER = 0x4, NOTES = 0x5, PASSWORD = 0x6,
-         // future fields: CTIME = 0x7, MTIME = 0x8, ATIME = 0x9, LTIME = 0xa, POLICY = 0xb,
+    enum Type { NAME=0, UUID=0x1, GROUP = 0x2, TITLE = 0x3, USER = 0x4, NOTES = 0x5, PASSWORD = 0x6, CTIME = 0x7, MTIME = 0x8,
+         // future fields: ATIME = 0x9, LTIME = 0xa, POLICY = 0xb,
                 END = 0xff};
 
     static bool read(FILE*, Context&, uint8_t& type, secstring&);
@@ -2452,6 +2452,7 @@ void DB::edit(const char* regex) {
         prompt += *i;
       }
       prompt += " ? [y]";
+      e.mtime = timestamp
       if (getyn(prompt, true)) {
         entries.erase(entries.find(e_orig.groupname()));
         entries.insert(entries_t::value_type(e.groupname(),e));
@@ -2601,7 +2602,10 @@ bool DB::Entry::operator!=(const Entry& e) const {
     default_login != e.default_login ||
     (!default_login && !e.default_login && login != e.login) ||
     password != e.password ||
-    notes != e.notes;
+    notes != e.notes ||
+    ctime != e.ctime ||
+    mtime != e.mtime
+    ;
 }
 
 int DB::Entry::diff(const Entry& e, secstring& summary) const {
@@ -2632,6 +2636,14 @@ int DB::Entry::diff(const Entry& e, secstring& summary) const {
   }
   if (notes != e.notes) {
     summary += "notes, ";
+    n++;
+  }
+  if (ctime != e.ctime) {
+    summary += "ctime, ";
+    n++;
+  }
+  if (mtime != e.mtime) {
+    summary += "mtime, ";
     n++;
   }
   if (n > 0) {
@@ -2666,9 +2678,12 @@ secstring DB::Entry::diff(const Entry& e) const {
   if (password != e.password)
     s += "PASSWORD -- <not shown>\n"
          "PASSWORD ++ <not shown>\n";
-  if (notes != e.notes)
-    s += "NOTES -- \"" + notes + "\"\n"
-         "NOTES ++ \"" + e.notes + "\"\n";
+  if (ctime != e.ctime)
+    s += "CTIME -- \"" + ctime + "\"\n"
+         "CTIME ++ \"" + e.ctime + "\"\n";
+  if (mtime != e.mtime)
+    s += "MTIME -- \"" + mtime + "\"\n"
+         "MTIME ++ \"" + e.mtime + "\"\n";
   return s;
 }
 
@@ -2693,6 +2708,8 @@ bool DB::Entry::read(FILE* f, DB::Context& c) {
           case USER: login=s; break;
           case NOTES: notes=s; break;
           case PASSWORD: password=s; break;
+          case MTIME: mtime=s; break;
+          case CTIME: ctime=s; break;
           case END: break;
           default:
             if (arg_verbose > 0) printf("reading field of unknown type %u\n", static_cast<int>(type));
