@@ -1,4 +1,4 @@
-/* 
+/*
    pwsafe - commandline tool compatible with Counterpane's Passwordsafe
 
    Copyright (C) 2004-2015 Nicolas S. Dade
@@ -17,7 +17,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  
+   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 */
 
@@ -254,7 +254,7 @@ void secstring::construct(const char* t1, size_type l1, const char* t2, size_typ
   txt[len] = '\0';
 }
 
-secstring::~secstring() { 
+secstring::~secstring() {
   deallocate();
 }
 
@@ -324,21 +324,21 @@ secstring::size_type secstring::find_last_not_of(char c) {
   return npos;
 }
 
-secstring operator+(const secstring& t1, const secstring& t2) { 
-  return secstring(t1.c_str(),t1.length(),t2.c_str(),t2.length()); 
+secstring operator+(const secstring& t1, const secstring& t2) {
+  return secstring(t1.c_str(),t1.length(),t2.c_str(),t2.length());
 }
-secstring operator+(const char* t1, const secstring& t2) { 
-  return secstring(t1,strlen(t1),t2.c_str(),t2.length()); 
+secstring operator+(const char* t1, const secstring& t2) {
+  return secstring(t1,strlen(t1),t2.c_str(),t2.length());
 }
-secstring operator+(const secstring& t1, const char* t2) { 
-  return secstring(t1.c_str(),t1.length(),t2,strlen(t2)); 
+secstring operator+(const secstring& t1, const char* t2) {
+  return secstring(t1.c_str(),t1.length(),t2,strlen(t2));
 }
-secstring operator+(const secstring& t1, char c) { 
+secstring operator+(const secstring& t1, char c) {
   return secstring(t1.c_str(),t1.length(),&c,1);
 }
-  
 
-  
+
+
 // ------ end of fixups for various systems; on to the real program ------
 
 // The name the program was run with, stripped of any leading path
@@ -355,8 +355,8 @@ const char* arg_dbname = NULL;
 Version arg_dbversion = VERSION_UNKNOWN;
 const char* arg_mergedb = NULL;
 const char* arg_name = NULL;
-enum OP { 
-  OP_NOP, OP_CREATEDB, OP_EXPORTDB, OP_MERGEDB, OP_PASSWD, OP_LIST, OP_EMIT, OP_ADD, OP_EDIT, OP_DELETE, 
+enum OP {
+  OP_NOP, OP_CREATEDB, OP_EXPORTDB, OP_MERGEDB, OP_PASSWD, OP_LIST, OP_EMIT, OP_ADD, OP_EDIT, OP_DELETE
 };
 OP arg_op = OP_NOP;
 //const char* arg_config = NULL;
@@ -366,6 +366,7 @@ const char* arg_output = NULL;
 FILE* outfile = NULL; // will be arg_output() or stdout
 bool arg_username = false;
 bool arg_password = false;
+bool arg_notes = false;
 bool arg_details = false;
 int arg_verbose = 0;
 int arg_debug = 0;
@@ -398,6 +399,7 @@ static long_option const long_options[] =
   {"long", no_argument, 0, 'l'},
   {"username", no_argument, 0, 'u'},
   {"password", no_argument, 0, 'p'},
+  {"notes", no_argument, 0, 'n'},
   // options controlling where output goes
   {"echo", no_argument, 0, 'E'},
   {"output", required_argument, 0, 'o'},
@@ -456,7 +458,7 @@ public:
   bool read(FILE*);
   bool write(FILE*) const;
 };
-  
+
 
 class DB {
 private:
@@ -503,10 +505,10 @@ private:
     const static char SPLIT_CHAR = '\xAD';
     const static char*const SPLIT_STR; // = "  \xAD  "
     const static char DEFAULT_USER_CHAR = '\xA0';
-  
+
     // version 2 field types
-    enum Type { NAME=0, UUID=0x1, GROUP = 0x2, TITLE = 0x3, USER = 0x4, NOTES = 0x5, PASSWORD = 0x6, 
-         // future fields: CTIME = 0x7, MTIME = 0x8, ATIME = 0x9, LTIME = 0xa, POLICY = 0xb, 
+    enum Type { NAME=0, UUID=0x1, GROUP = 0x2, TITLE = 0x3, USER = 0x4, NOTES = 0x5, PASSWORD = 0x6,
+         // future fields: CTIME = 0x7, MTIME = 0x8, ATIME = 0x9, LTIME = 0xa, POLICY = 0xb,
                 END = 0xff};
 
     static bool read(FILE*, Context&, uint8_t& type, secstring&);
@@ -552,7 +554,7 @@ private:
   bool changed; // unsaved changes have been made
   bool backedup; // true after backup() has succeeded
   bool overwritten; // true once we start overwriting dbname
-  
+
   bool getkey(bool test, const char* prompt1="Enter passphrase", const char* prompt2="Reenter passphrase"); // get/verify passphrase
   bool testkey(const secstring&);
   void hashkey(const secstring&, unsigned char test_hash[]);
@@ -575,7 +577,7 @@ public:
   void mergedb(DB&);
   void passwd();
   void list(const char* regex);
-  void emit(const char* regex, bool username, bool password);
+  void emit(const char* regex, bool username, bool password, bool notes);
   void add(const char* name);
   void edit(const char* regex);
   void del(const char* name);
@@ -585,7 +587,7 @@ public:
   bool backup(); // create ~ file
   bool save(); // write out db file (please backup() first if appropriate)
   bool restore(); // copy ~ file back to original (only if an earlier call to backup() suceeded)
-  
+
   static const secstring& defaultlogin() { return Entry::the_default_login; }
 };
 
@@ -601,7 +603,7 @@ int main(int argc, char **argv) {
     try {
       saved_uid = geteuid();
       saved_gid = getegid();
-      
+
       // if we are running suid, drop privileges now; we use seteuid() instead of setuid() so the saved uid remains root and we can become root again in order to mlock()
       if (saved_uid != getuid() || saved_gid != getgid()) {
         setegid(getgid());
@@ -617,7 +619,7 @@ int main(int argc, char **argv) {
         const char* datname = getenv("PWSAFE_DATABASE");
         if (!datname)
           datname = ".pwsafe.dat";
-        
+
         const char* home = getenv("HOME");
         if (home && datname[0] != '/') {
           char* dbname = reinterpret_cast<char*>(malloc(strlen(home)+1+strlen(datname)+1));
@@ -639,7 +641,7 @@ int main(int argc, char **argv) {
       }
 
       int idx = parse(argc, argv);
-   
+
 #ifndef X_DISPLAY_MISSING
       // if no --ignore was specified, use the default
       if (arg_ignore.empty()) {
@@ -657,10 +659,10 @@ int main(int argc, char **argv) {
         // assume --list
         arg_op = OP_LIST;
 
-      if (arg_op == OP_LIST && (arg_username || arg_password))
+      if (arg_op == OP_LIST && (arg_username || arg_password || arg_notes))
         // this is actually an OP_EMIT and not an OP_LIST
         arg_op = OP_EMIT;
-      
+
       if (idx != argc) {
         if ((arg_op == OP_LIST || arg_op == OP_EMIT || arg_op == OP_ADD || arg_op == OP_EDIT || arg_op == OP_DELETE) && idx+1 == argc) {
           arg_name = argv[idx];
@@ -728,7 +730,7 @@ int main(int argc, char **argv) {
         throw FailEx();
       }
       // from this point on stdout points to something we can interact with the user on, and outfile points to where we should put our output
- 
+
 
       // seed the random number generator
       char rng_filename[1024];
@@ -746,11 +748,11 @@ int main(int argc, char **argv) {
       }
 
 #ifndef X_DISPLAY_MISSING
-      if (arg_verbose >= 0 && (arg_password || arg_username) && (arg_echo || arg_xclip))
-        printf("Going to %s %s to %s\n", arg_xclip?"copy":"print", arg_password&&arg_username?"login and password":arg_password?"password":"login", arg_xclip?xsel_names:"stdout");
+      if (arg_verbose >= 0 && (arg_password || arg_username || arg_notes) && (arg_echo || arg_xclip))
+        printf("Going to %s %s to %s\n", arg_xclip?"copy":"print", arg_password&&arg_username?"login and password":arg_password?"password":arg_notes?"notes":"login", arg_xclip?xsel_names:"stdout");
 #else
-      if (arg_verbose >= 0 && (arg_password || arg_username) && (arg_echo))
-        printf("Going to print %s to stdout\n", arg_password&&arg_username?"login and password":arg_password?"password":"login");
+      if (arg_verbose >= 0 && (arg_password || arg_username || arg_notes) && (arg_echo))
+        printf("Going to print %s to stdout\n", arg_password&&arg_username?"login and password":arg_password?"password":arg_notes?"notes":"login");
 #endif
       DB::Init();
 
@@ -794,7 +796,7 @@ int main(int argc, char **argv) {
               db.list(arg_name);
               break;
             case OP_EMIT:
-              db.emit(arg_name, arg_username, arg_password);
+              db.emit(arg_name, arg_username, arg_password, arg_notes);
               break;
             case OP_ADD:
               db.add(arg_name);
@@ -819,7 +821,7 @@ int main(int argc, char **argv) {
               if (!(db.backup() && db.save()))
                 throw FailEx();
             }
-              
+
           } catch (const FailEx&) {
             // try and restore database from backup if a backup was successfully created
             db.restore();
@@ -844,10 +846,10 @@ int main(int argc, char **argv) {
         int rc = RAND_write_file(rng_filename);
         if (arg_verbose > 0) printf("wrote %d bytes to %s\n", rc, rng_filename);
       } // else they already got an error above when we tried to read rng_filename
-   
+
       // and we are done
       throw ExitEx(0);
-      
+
     } catch (const FailEx&) {
       throw ExitEx(1);
     }
@@ -858,7 +860,7 @@ int main(int argc, char **argv) {
 #endif
     if (outfile)
       fclose(outfile);
-    
+
     return ex.rc;
   }
 }
@@ -879,6 +881,7 @@ static int parse(int argc, char **argv) {
           "o:"  // output
           "u"   // username
           "p"   // password
+          "n"   // note
 #ifndef X_DISPLAY_MISSING
           "x"   // xclip
           "d:"  // display
@@ -969,7 +972,7 @@ static int parse(int argc, char **argv) {
         arg_output = optarg;
         // fall through into 'E' since -o implies -e
       case 'E':
-        arg_echo = true; 
+        arg_echo = true;
 #ifndef X_DISPLAY_MISSING
         arg_xclip = false;
 #endif
@@ -979,6 +982,9 @@ static int parse(int argc, char **argv) {
         break;
       case 'p':
         arg_password = true;
+        break;
+      case 'n':
+        arg_notes = true;
         break;
 #ifndef X_DISPLAY_MISSING
       case 'd':
@@ -1037,6 +1043,7 @@ static void usage(bool fail) {
         "  -l                         long listing (show username & notes)\n"
         "  -u, --username             emit username of listed account\n"
         "  -p, --password             emit password of listed account\n"
+        "  -n, --notes                emit notes of listed account\n"
         "  -E, --echo                 force echoing of entry to stdout\n"
         "  -o, --output=FILE          redirect output to file (implies -E)\n"
         "  --dbversion=[1|2]          specify database file version (default is 2)\n"
@@ -1200,7 +1207,7 @@ static secstring random_password() {
     int entropy_per_char;
     bool one_char_from_each_type = true;
     switch (type) {
-      case 0: 
+      case 0:
         type_name = "alpha/digit/symbol";
         sets[0] = all_alphanum;
         sets[1] = easyvision_symbol;
@@ -1227,13 +1234,13 @@ static secstring random_password() {
         sets[0] = digits_only;
         entropy_per_char = 332; // 100 * log2(10)
         one_char_from_each_type = false;
-        break; 
+        break;
       case 5:
         type_name = "hex digits only";
         sets[0] = hex_only;
         entropy_per_char = 400; // 100 * log2(16)
         one_char_from_each_type = false;
-        break; 
+        break;
       default:
         // wrap around back to type 0
         type = 0;
@@ -1242,14 +1249,14 @@ static secstring random_password() {
 
     const int set0_chars = strlen(sets[0]);
     const int total_chars = set0_chars + strlen(sets[1]);
-    
+
     // But we are not going to generate all possible passwords because we are going to exclude those that don't have at least one char from each type, so that reduces the entropy_per_char
     // if originally we had 2^(num_chars * entropy_per_char) possible passwords, and we exclude (in the worst case) (and double-counting those passwords that have two types of char missing)
     // (57-25)/57 ^ num_chars + (57-22)/57 ^ num_chars + (57-10)/57 ^ num_chars of these, we reduce the bits of entropy per char by
     // log2(57)-log2(57-25) + log2(57)-log2(57-22) + log2(57)-log2(57-10) = 1.82 pessimist bits/char
     if (one_char_from_each_type)
       entropy_per_char -= 182;
-  
+
     const int num_chars = 1+100*entropy_needed/entropy_per_char; // we want 20*8 bits of entropy in our password (thus good enough to create good SHA1 hashes/to key 128-bit key secret key algo's); +1 is in lou of rounding the division properly
 
     secstring pw;
@@ -1267,7 +1274,7 @@ static secstring random_password() {
           }
           idx &= 0x7f; // might as well strip off the upper bit since total_chars is never more than 64, and such a stripping doesn't change the distribution
         } while (idx >= total_chars);
-        
+
         char c;
         if (idx < set0_chars)
           c = sets[0][idx];
@@ -1275,7 +1282,7 @@ static secstring random_password() {
           c = sets[1][idx-set0_chars];
 
         pw += c;
-          
+
         if (islower(c)) got_lower = true;
         else if (isupper(c)) got_upper = true;
         else if (isdigit(c)) got_num = true;
@@ -1388,7 +1395,7 @@ static void emit(const secstring& name, const char*const what, const secstring& 
 
     Window xwin = XCreateSimpleWindow(xdisplay, DefaultRootWindow(xdisplay), 0,0,1,1,0,0,0);
     XSelectInput(xdisplay, xwin, PropertyChangeMask);
-    
+
     { // the X11 ICCCM section 3.2.1 says we must synthesize an event in order to get a timestamp to use with XSetSelectionOwner() instead of using CurrentTime, so we will take the time from the WM_COMMAND event generated inside XSetWMProperties()
       const char*const argv[2] = { program_name, NULL }; // lie about our argv so that we don't expose any semi-sensative commandline options
       XTextProperty winname = { reinterpret_cast<unsigned char*>(const_cast<char*>(program_name)), XA_STRING, 8, strlen(program_name) };
@@ -1473,7 +1480,7 @@ static void emit(const secstring& name, const char*const what, const secstring& 
           Atom prop = xev.xselectionrequest.property;
           if (prop == None)
             prop = xev.xselectionrequest.target; // an old-style client
-     
+
           bool fakeout = false;
 
           // don't answer if the timestamp is too early or too late
@@ -1548,7 +1555,7 @@ static void emit(const secstring& name, const char*const what, const secstring& 
                 if (!fakeout) {
                   if (arg_verbose >= 0)
                     printf("Sending %s for %s to %s@%s via %s\n", what, name.c_str(), requestor, host, selection);
-                } else if (arg_verbose > 0) 
+                } else if (arg_verbose > 0)
                   printf("Ignoring request from %s@%s\n", requestor, host);
               }
 
@@ -1658,7 +1665,7 @@ Block::~Block() {
 void Block::zero() {
   memset(block,0,sizeof(block));
 }
-  
+
 void Block::makeLE(unsigned char b[8]) {
   if (0x1234 == ntohl(0x1234)) {
     // this is a big-endian system; put the 8 bytes data in little-endian order
@@ -1715,7 +1722,7 @@ bool Block::write(FILE* f) const {
   bool rc = fwrite(data, 1,sizeof(data), f) == sizeof(data);
   return rc;
 }
-    
+
 
 // ---- DB class -------------------------------------------------------
 
@@ -1723,8 +1730,8 @@ void DB::Init() {
   Entry::Init();
 }
 
-DB::DB(const char* n, Version v) : 
-  version(v), 
+DB::DB(const char* n, Version v) :
+  version(v),
   opened(false), changed(false), backedup(false), overwritten(false),
   dbname_str(n), dbname(dbname_str.c_str())
 {
@@ -1737,7 +1744,7 @@ DB::~DB() {
 
 void DB::createdb(const char* dbname) {
   if (arg_verbose > 0) printf("creating %s\n", dbname);
-  
+
   // be sure not to overwrite an existing file
   struct stat s;
   if (!stat(dbname, &s)) {
@@ -1791,7 +1798,7 @@ static secstring xmlescape(const secstring& s) {
   out += '"';
   return out;
 }
-  
+
 void DB::exportdb() {
   matches_t matches;
   if (open()) {
@@ -1800,7 +1807,7 @@ void DB::exportdb() {
 
     if (version == VERSION_1_7) fprintf(outfile, "%s\t%s\t%s\t%s\n", "name", "login", "passwd", "notes");
     else fprintf(outfile,"%s\t%s\t%s\t%s\t%s\t%s\n", "uuid", "group", "name", "login", "passwd", "notes");
-    
+
     for (entries_t::const_iterator i=entries.begin(); i!=entries.end(); ++i) {
       const Entry& e = i->second;
       if (version == VERSION_1_7)
@@ -1885,13 +1892,13 @@ void DB::mergedb(DB& db2) {
         num_merged++;
       }
     }
-    
+
     // if the user specified the dbversion then consider that to be a change, so the use can mergedb a
     // database with itself in order to change version (yeah, it's kinda a hack, but it's also kinda unixy)
     if (arg_dbversion != version)
       changed = true;
 
-    if (arg_verbose >= 0) 
+    if (arg_verbose >= 0)
       printf("Merged %d entries; skipped %d; %d duplicates.\n", num_merged, num_skipped, num_dup);
   } else
     throw FailEx();
@@ -2005,7 +2012,7 @@ bool DB::open(const secstring* pw_to_try) {
     fclose(file);
     return false;
   }
- 
+
   if ((pw_to_try && testkey(*pw_to_try)) || getkey(true)) {
     // load the rest of the file
     Context*const ctxt = new Context(*header, passphrase, version); // so context resides in secure memory
@@ -2050,7 +2057,7 @@ bool DB::open(const secstring* pw_to_try) {
     // assume empty files are v1.7, since a version 2.0 "empty" file would have contained the magic v2.0 entry
     version = VERSION_1_7;
   }
- 
+
   if (arg_verbose > 1) printf("read in %zu entries\n", entries.size());
 
   opened = true;
@@ -2119,7 +2126,7 @@ bool DB::restore() {
     fprintf(stderr, "No backup of %s was created\nUNABLE TO RESTORE %s from %s\n", dbname, dbname, backupname);
     return false;
   }
-  
+
   if (unlink(dbname) && errno != ENOENT) {
     fprintf(stderr, "unlink of %s failed: %s\nUNABLE TO RESTORE %s from %s\n", dbname, strerror(errno), dbname, backupname);
     return false;
@@ -2140,11 +2147,11 @@ bool DB::restore() {
 
 bool DB::save() {
   Version saveversion = (arg_dbversion != VERSION_UNKNOWN ? arg_dbversion : version); // if the user specifies a dbversion then we convert
-  
+
   if (arg_verbose > 0) printf("writing %s version %s\n", dbname, VERSION_NAME[saveversion]);
 
   // if this is a version change, then ask
-  if (saveversion != version && 
+  if (saveversion != version &&
       !getyn(std::string("Confirm overwriting version ")+VERSION_NAME[version]+" database "+dbname+" with a version "+VERSION_NAME[saveversion]+" database file ? "))
       return false;
 
@@ -2196,7 +2203,7 @@ bool DB::save() {
     fprintf(stderr,"Can't write/close %s: %s\n", dbname, strerror(errno));
     return false;
   }
- 
+
   changed = false;
 
   return true;
@@ -2287,11 +2294,11 @@ void DB::list(const char* regex /* might be NULL */) {
   if (open() && find(matches, regex)) {
     for (matches_t::const_iterator i=matches.begin(); i!=matches.end(); ++i) {
       const Entry& e = **i;
-    
+
       if (arg_details) {
         // print out the name
         fprintf(outfile,"%s", e.groupname().c_str());
-        
+
         // append the login if it exists
         if (!e.login.empty())
           fprintf(outfile,"  -  %s\n", e.login.c_str());
@@ -2299,7 +2306,7 @@ void DB::list(const char* regex /* might be NULL */) {
           fprintf(outfile,"  -  [%s]\n", e.the_default_login.c_str());
         else
           fprintf(outfile,"\n");
- 
+
         // print out the notes, prefixing each line with "> "
         emit_notes(e.notes);
 
@@ -2317,7 +2324,7 @@ void DB::list(const char* regex /* might be NULL */) {
   }
 }
 
-void DB::emit(const char* regex, bool username, bool password) {
+void DB::emit(const char* regex, bool username, bool password, bool notes) {
   if (open()) {
     const Entry& e = find1(regex);
 
@@ -2330,7 +2337,9 @@ void DB::emit(const char* regex, bool username, bool password) {
       ::emit(e.groupname(), "username", e.default_login?e.the_default_login:e.login);
     if (password)
       ::emit(e.groupname(), "password", e.password);
- 
+    if (notes)
+      ::emit(e.groupname(), "notes", e.notes);
+
     if (arg_echo && arg_details)
       // if we didn't emit the notes above, do it now
       emit_notes(e.notes);
@@ -2359,7 +2368,7 @@ void DB::add(const char* name /* might be NULL */) {
         e.name = gettxt("name: ");
       if (version != VERSION_1_7 && e.group.empty())
         e.group = gettxt("group [<none>]: ");
- 
+
       if (entries.find(e.groupname()) != entries.end()) {
         fprintf(stderr,"%s already exists\n", e.groupname().c_str());
         if (name)
@@ -2375,14 +2384,14 @@ void DB::add(const char* name /* might be NULL */) {
       e.default_login = getyn("use default username ("+e.the_default_login+") ? [n] ", false);
 
     e.password = enter_password("password [return for random]: ", "password again: ");
- 
+
     e.notes = gettxt("notes: ");
- 
+
     entries.insert(entries_t::value_type(e.groupname(),e));
     changed = true;
   } else
     throw FailEx();
-} 
+}
 
 void DB::edit(const char* regex) {
   if (open()) {
@@ -2393,13 +2402,13 @@ void DB::edit(const char* regex) {
       e.name = gettxt("name: ["+e_orig.name+"] ", e_orig.name);
       if (version != VERSION_1_7)
         e.group = gettxt("group: ["+e_orig.group+"] ", e_orig.group);
-      if ((e.name == e_orig.name && e.group == e_orig.group) || 
+      if ((e.name == e_orig.name && e.group == e_orig.group) ||
           entries.find(e.groupname()) == entries.end()) // e.name cannot be empty b/c if the user entered an empty string they got the old name
         break;
       printf("%s already exists\n", e.groupname().c_str());
     }
 
- 
+
     if (e.default_login)
       e.default_login = getyn("keep default username ("+e_orig.the_default_login+") ? [y]", true);
     if (!e.default_login) {
@@ -2426,10 +2435,10 @@ void DB::edit(const char* regex) {
     if (e_orig != e) {
       typedef std::vector<std::string> changes_t;
       changes_t changes;
-      
+
       if (e_orig.group != e.group) changes.push_back("group");
       if (e_orig.name != e.name) changes.push_back("name");
-      if (e_orig.default_login != e.default_login || 
+      if (e_orig.default_login != e.default_login ||
           (!e_orig.default_login && !e.default_login && e_orig.login != e.login))
         changes.push_back("login");
       if (e_orig.password != e.password)
@@ -2454,7 +2463,7 @@ void DB::edit(const char* regex) {
       printf("No change\n");
   }
 }
- 
+
 
 void DB::del(const char* name) {
   if (arg_verbose > 0) printf("deleting %s from %s\n", name, dbname);
@@ -2634,7 +2643,7 @@ int DB::Entry::diff(const Entry& e, secstring& summary) const {
 
 secstring DB::Entry::diff(const Entry& e) const {
   secstring s;
-  if (uuid != e.uuid) 
+  if (uuid != e.uuid)
     s += "UUID -- " + uuid + "\n"
          "UUID ++ " + e.uuid + "\n";
   if (group != e.group)
@@ -2699,7 +2708,7 @@ bool DB::Entry::read(FILE* f, DB::Context& c) {
     // read a version 1.7 entry
     secstring name_login;
     rc = read(f,c,type,name_login) &&
-      read(f,c,type,password) && 
+      read(f,c,type,password) &&
       read(f,c,type,notes);
     if (rc) {
       // split name_login if it contains the magic split char
@@ -2753,7 +2762,7 @@ bool DB::Entry::write(FILE* f, DB::Context& c) const {
     secstring save_uuid = uuid;
     if (uuid.empty()) {
       // we must have read in a v1.7 file; create a uuid on the fly
-      // NOTE: instead of creating a per-rfc UUID which includes hardware-identificators like your 1st NIC's MAC address, 
+      // NOTE: instead of creating a per-rfc UUID which includes hardware-identificators like your 1st NIC's MAC address,
       // I make it completely random. I like this better, and given the size of the UUID collisions won't be a problem.
       unsigned char buf[16];
       if (!RAND_bytes(buf,sizeof(buf))) {
@@ -2792,11 +2801,11 @@ bool DB::Entry::write(FILE* f, DB::Context& c) const {
 
 bool DB::Entry::read(FILE* f, DB::Context& c, uint8_t& type, secstring& str) {
   str.erase();
-  
+
   Block block;
   if (!block.read(f))
     return false;
-  
+
   Block copy = block;
   BF_decrypt(block, &c.bf);
   block ^= c.cbc;
@@ -2807,7 +2816,7 @@ bool DB::Entry::read(FILE* f, DB::Context& c, uint8_t& type, secstring& str) {
 
   block.zero();
   copy.zero();
-  
+
   if (len < 0) {
     // set errno to something smart
     errno = PWSAFE_ERR_INVALID_DB;
@@ -2851,7 +2860,7 @@ bool DB::Entry::write(FILE* f, DB::Context& c, const extras_t& extras) {
 
 bool DB::Entry::write(FILE* f, DB::Context& c, uint8_t type, const secstring& str) {
   const unsigned char*const data = reinterpret_cast<const unsigned char*>(str.data());
-  
+
   int numblocks = (str.length()+8-1)/8;
   if (numblocks == 0)
     numblocks = 1; // always have one block, even if it is all zero's
@@ -2876,7 +2885,7 @@ bool DB::Entry::write(FILE* f, DB::Context& c, uint8_t type, const secstring& st
     if (!block.write(f))
       return false;
   }
-  
+
   return true;
 }
 
@@ -2910,7 +2919,7 @@ secalloc::Pool::Pool(size_t n) : next(0), top(0), bottom(0), level(0) {
   // Redhat FC3 returns ENOMEM if not root, not EPERM, so dont bother checking for EPERM error from mlock(); treat any error to mean 'try mlock() against as SUID user'
   if (rc && (saved_uid != geteuid() || saved_gid != getegid())) {
     // try again as root (or whoever saved_uid really is)
-    if (saved_uid != geteuid()) 
+    if (saved_uid != geteuid())
       seteuid(saved_uid);
     if (saved_gid != getegid())
       setegid(saved_gid);
@@ -2944,7 +2953,7 @@ secalloc::secalloc() {
 void secalloc::init() {
   if (pagesize == 0) { // initialize pagesize the first time we are called
     pagesize = getpagesize();
-  
+
     if (pagesize == (size_t)-1 || pagesize == 0) {
       const char errstr[] = "Error: can't compute kernel MMU page size\n";
       write(STDERR_FILENO, errstr, sizeof(errstr)); // at the point when init() is called, stderr is not necessarily setup
@@ -2997,7 +3006,7 @@ static int getopt_long(int argc, char*const argv[], const char* short_opts, cons
   if (optind >= argc)
     // nothing left at all
     return -1;
-  
+
   const char*const p = argv[optind];
   if (p[0] != '-' || p[1] != '-')
     // not a long option. since we don't reorder argv[] we let getopt() have a crack at it
